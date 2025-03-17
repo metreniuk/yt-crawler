@@ -1,0 +1,23 @@
+services:
+  producer:
+    image: yt-crawler-producer:latest
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - kafka
+  consumer:
+    image: yt-crawler-consumer:latest
+    ports:
+      - 3001:3000
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - kafka
+  kafka:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    ports:
+      - 9092:9092
+    command:
+      - redpanda start --smp=1 --mode=dev-container

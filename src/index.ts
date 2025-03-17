@@ -21,7 +21,7 @@ if (!fs.existsSync(storageDir)) {
   fs.mkdirSync(storageDir, { recursive: true });
 }
 
-const kafkaBrokers = ["localhost:9092"];
+const kafkaBrokers = ["127.0.0.1:9092"];
 // const outputFormats: string[] = ["mp4", "avi", "webm", "mkv"];
 const outputFormats: string[] = ["mp4", "avi"];
 // ---------- "S3" Interface Implemented with the File System ----------
@@ -73,27 +73,28 @@ function downloadYouTubeVideo(
   outputPath: string
 ): Promise<string> {
   return new Promise((resolve, reject) => {
+    resolve(outputPath);
     // First, get the filename that yt-dlp will use
-    const getFilenameCommand = `yt-dlp --get-filename -f 'bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720]/b' -o "${outputPath}.%(ext)s" ${videoUrl}`;
-    exec(getFilenameCommand, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error getting filename: ${error.message}`);
-        return reject(error);
-      }
+    // const getFilenameCommand = `yt-dlp --get-filename -f 'bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720]/b' -o "${outputPath}.%(ext)s" ${videoUrl}`;
+    // exec(getFilenameCommand, (error, stdout, stderr) => {
+    //   if (error) {
+    //     console.error(`Error getting filename: ${error.message}`);
+    //     return reject(error);
+    //   }
 
-      const actualOutputPath = stdout.trim(); // Remove any trailing newlines
-      const command = `yt-dlp -f 'bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720]/b' -o "${outputPath}.%(ext)s" ${videoUrl}`;
-      console.log(`Executing: ${command}`);
+    //   const actualOutputPath = stdout.trim(); // Remove any trailing newlines
+    //   const command = `yt-dlp -f 'bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720]/b' -o "${outputPath}.%(ext)s" ${videoUrl}`;
+    //   console.log(`Executing: ${command}`);
 
-      exec(command, (error, stdout) => {
-        if (error) {
-          console.error(`yt-dlp error: ${error.message}`);
-          return reject(error);
-        }
-        console.log(`yt-dlp output: ${stdout}`);
-        resolve(actualOutputPath);
-      });
-    });
+    // exec(command, (error, stdout) => {
+    //   if (error) {
+    //     console.error(`yt-dlp error: ${error.message}`);
+    //     return reject(error);
+    //   }
+    //   console.log(`yt-dlp output: ${stdout}`);
+    //   resolve(actualOutputPath);
+    // });
+    // });
   });
 }
 
@@ -147,7 +148,10 @@ async function runProducer(): Promise<void> {
   const tempDir = path.join(__dirname, "temp");
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-  let ids = ["-RXA143mC_0"];
+  let ids = ["ywOhAvyA9Bk", "0YzMNYvpdxg", "dfgo43tgRGe", "342rweWEqfda"];
+  for (let i = 0; i < 10; i++) {
+    ids = ids.concat(ids).concat(ids).concat(ids).concat(ids).concat(ids);
+  }
   for (let id of ids) {
     try {
       const outputFilename = `downloaded_video_${id}`;
@@ -155,24 +159,21 @@ async function runProducer(): Promise<void> {
       const videoUrl = `https://www.youtube.com/watch?v=${id}`;
       console.log(`Downloading video from YouTube: ${videoUrl}`);
       localOutputPath = await downloadYouTubeVideo(videoUrl, localOutputPath);
-
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          resolve(localOutputPath);
-        }, 1000);
+      await new Promise((resolve) => {
+        setTimeout(resolve, Math.random() * 1000);
       });
       console.log(`Downloaded video to: ${localOutputPath}`);
 
       // "Upload" the video to our storage folder.
       const s3Key = `videos/${outputFilename}`;
-      await uploadToS3(localOutputPath, s3Key);
-      console.log(`Stored video with key: ${s3Key}`);
+      // await uploadToS3(localOutputPath, s3Key);
+      // console.log(`Stored video with key: ${s3Key}`);
 
       // Produce Kafka event.
       await produceEvent(s3Key);
 
       // Clean up local file.
-      fs.unlinkSync(localOutputPath);
+      // fs.unlinkSync(localOutputPath);
     } catch (err) {
       console.error("Error in producer:", err);
     }
@@ -187,25 +188,25 @@ async function processVideo(s3Key: string): Promise<void> {
   const localVideoPath = path.join(tempDir, path.basename(s3Key));
 
   // "Download" video from our storage folder.
-  await downloadFromS3(s3Key, localVideoPath);
+  // await downloadFromS3(s3Key, localVideoPath);
   console.log(`Processing video from: ${localVideoPath}`);
 
   // Encode into each format.
-  const encodedPaths: Promise<string>[] = outputFormats.map((format) =>
-    encodeVideo(localVideoPath, format)
-  );
-  const encodedFiles = await Promise.all(encodedPaths);
+  // const encodedPaths: Promise<string>[] = outputFormats.map((format) =>
+  //   encodeVideo(localVideoPath, format)
+  // );
+  // const encodedFiles = await Promise.all(encodedPaths);
 
   // "Upload" each encoded file back to our storage folder.
   for (let i = 0; i < outputFormats.length; i++) {
     const format = outputFormats[i];
-    const encodedFile = encodedFiles[i];
-    const s3UploadKey = `encoded/${format}/${path.basename(encodedFile)}`;
-    await uploadToS3(encodedFile, s3UploadKey);
-    console.log(`Stored ${format} file with key: ${s3UploadKey}`);
-    fs.unlinkSync(encodedFile);
+    // const encodedFile = encodedFiles[i];
+    // const s3UploadKey = `encoded/${format}/${path.basename(encodedFile)}`;
+    // await uploadToS3(encodedFile, s3UploadKey);
+    console.log(`Stored ${format} for file with key: ${s3Key}`);
+    // fs.unlinkSync(encodedFile);
   }
-  fs.unlinkSync(localVideoPath);
+  // fs.unlinkSync(localVideoPath);
 }
 
 async function runConsumer(): Promise<void> {
