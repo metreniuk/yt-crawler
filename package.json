@@ -2,6 +2,10 @@
   "name": "playground",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "producer": "bun run ./src/index.ts producer",
+    "consumer": "bun run ./src/index.ts consumer"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

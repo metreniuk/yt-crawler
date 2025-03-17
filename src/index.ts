@@ -147,14 +147,7 @@ async function runProducer(): Promise<void> {
   const tempDir = path.join(__dirname, "temp");
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
-  let ids = [
-    "UOYmwjPJDz8",
-    "-RXA143mC_0",
-    "VIPH9lY7nUw",
-    "fai_cwpo4dA",
-    "dQw4w9WgXcQ",
-    "dQw4w9WgXcQ",
-  ];
+  let ids = ["-RXA143mC_0"];
   for (let id of ids) {
     try {
       const outputFilename = `downloaded_video_${id}`;
