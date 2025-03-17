@@ -4,7 +4,10 @@
   "type": "module",
   "scripts": {
     "producer": "bun run ./src/index.ts producer",
-    "consumer": "bun run ./src/index.ts consumer"
+    "consumer": "bun run ./src/index.ts consumer",
+    "docker-consumer": "docker build . -f ./docker/consumer/Dockerfile -t yt-crawler-consumer",
+    "docker-producer": "docker build . -f ./docker/producer/Dockerfile -t yt-crawler-producer",
+    "docker-all": "bun run docker-consumer && bun run docker-producer"
   },
   "devDependencies": {
     "@types/bun": "latest"

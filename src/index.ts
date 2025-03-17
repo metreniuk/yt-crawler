@@ -21,7 +21,7 @@ if (!fs.existsSync(storageDir)) {
   fs.mkdirSync(storageDir, { recursive: true });
 }
 
-const kafkaBrokers = ["127.0.0.1:9092"];
+const kafkaBrokers = ["kafka:9092"];
 // const outputFormats: string[] = ["mp4", "avi", "webm", "mkv"];
 const outputFormats: string[] = ["mp4", "avi"];
 // ---------- "S3" Interface Implemented with the File System ----------
@@ -102,7 +102,13 @@ function downloadYouTubeVideo(
  * Produces a Kafka event with the given S3 key.
  */
 async function produceEvent(s3Key: string): Promise<void> {
-  const kafka = new Kafka({ brokers: kafkaBrokers });
+  const kafka = new Kafka({
+    brokers: kafkaBrokers,
+    clientId: "yt-crawler-producer",
+    retry: {
+      retries: 20,
+    },
+  });
   const producer = kafka.producer();
   await producer.connect();
   const videoEvent = { s3Key };
